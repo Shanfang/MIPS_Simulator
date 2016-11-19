@@ -18,7 +18,7 @@ stringstream ss;
 
 //calculate offset
 int signExt16(string str) {
-	int offset = stoi(str.c_str(), NULL, 2);
+	long offset = strtoul(str.c_str(), NULL, 2);
     if(str.substr(0, 1) == "1") {
         offset = offset - pow(2, 16);
     }
@@ -28,17 +28,17 @@ int signExt16(string str) {
 //decode cat1 instructions
 string cat1(string line) {
 	string instruction;
-    int opcode = stoi(line.substr(3,3).c_str(), NULL, 2);
+    int opcode = strtoul(line.substr(3,3).c_str(), NULL, 2);
     //int cat = 1;
-
-	if(opcode = 0) {
+	cout << opcode << endl;
+	if(opcode == 0) {
         //NOP
 		instruction = "NOP";
 		int opcode = 0;
         Node newNode(1, opcode, 0, 0, 0);
         nodes.push_back(newNode);
 	}
-    else if(opcode = 1) {
+    else if(opcode == 1) {
 	    //Jump
 		string bits26 = line.substr(6, 26);
 		string bits28 = bits26.append("00");
@@ -48,7 +48,7 @@ string cat1(string line) {
 		To follow the logic in processor, we can let X = 0xF0000000 &(pc+4), Y = offset << 2;
 		then get newPC = X|Y
 		*/
-	    int newPC = stoi(bits28.c_str(), NULL, 2);
+	    long newPC = strtoul(bits28.c_str(), NULL, 2);
 		ss << newPC;
 		instruction = "J #" + ss.str();
 	    ss.str(string());
@@ -56,17 +56,17 @@ string cat1(string line) {
         Node newNode(1, opcode, 0, 0, newPC);
         nodes.push_back(newNode);
 	}
-	else if(opcode = 2) {
+	else if(opcode == 2) {
 		//BEQ
-        int rs = stoi(line.substr(6, 5).c_str(), NULL, 2);
+        int rs = strtoul(line.substr(6, 5).c_str(), NULL, 2);
         ss << rs;
         string RS = ss.str();
         ss.str(string());
-        int rt = stoi(line.substr(11,5).c_str(), NULL, 2);
+        int rt = strtoul(line.substr(11,5).c_str(), NULL, 2);
         ss << rt;
         string RT = ss.str();
         ss.str(string());
-        int offset = signExt16(line.substr(16, 16));
+        long offset = signExt16(line.substr(16, 16));
         ss << offset;
         string strOff = ss.str();
         ss.str(string());
@@ -74,17 +74,17 @@ string cat1(string line) {
         Node newNode(1, opcode, rs, rt, offset);
         nodes.push_back(newNode);
 	}
-	else if(opcode = 3) {
+	else if(opcode == 3) {
 		//BNE
-        int rs = stoi(line.substr(6, 5).c_str(), NULL, 2);
+        int rs = strtoul(line.substr(6, 5).c_str(), NULL, 2);
         ss << rs;
         string RS = ss.str();
         ss.str(string());
-        int rt = stoi(line.substr(11,5).c_str(), NULL, 2);
+        int rt = strtoul(line.substr(11,5).c_str(), NULL, 2);
         ss << rt;
         string RT = ss.str();
         ss.str(string());
-        int offset = signExt16(line.substr(16, 16));
+        long offset = signExt16(line.substr(16, 16));
         ss << offset;
         string strOff = ss.str();
         ss.str(string());
@@ -92,30 +92,30 @@ string cat1(string line) {
         Node newNode(1, opcode, rs, rt, offset);
         nodes.push_back(newNode);
 	}
-	else if(opcode = 4) {
+	else if(opcode == 4) {
 		//BGTZ
-		int rs = stoi(line.substr(6, 5).c_str(), NULL, 2);
+		int rs = strtoul(line.substr(6, 5).c_str(), NULL, 2);
 		ss << rs;
 		string RS = ss.str();
     	ss.str(string());
-	    int offset = signExt16(line.substr(16, 16));
+	    long offset = signExt16(line.substr(16, 16));
 		ss << offset;
 		instruction = "BGTZ R" + RS + ", " + "#" + ss.str();
     	ss.str(string());
         Node newNode(1, opcode, rs, 0, offset);
         nodes.push_back(newNode);
 	}
-	else if(opcode = 5) {
+	else if(opcode == 5) {
 		//SW
-        int base = stoi(line.substr(6, 5).c_str(), NULL, 2);
+        int base = strtoul(line.substr(6, 5).c_str(), NULL, 2);
         ss << base;
         string Base = ss.str();
         ss.str(string());
-        int rt = stoi(line.substr(11,5).c_str(), NULL, 2);
+        int rt = strtoul(line.substr(11,5).c_str(), NULL, 2);
         ss << rt;
         string RT = ss.str();
         ss.str(string());
-        int offset = signExt16(line.substr(16, 16));
+        long offset = signExt16(line.substr(16, 16));
         ss << offset;
         string strOff = ss.str();
         ss.str(string());
@@ -123,17 +123,17 @@ string cat1(string line) {
         Node newNode(1, opcode, base, rt, offset);
         nodes.push_back(newNode);
 	}
-	else if(opcode = 6) {
+	else if(opcode == 6) {
 		//LW
-        int base = stoi(line.substr(6, 5).c_str(), NULL, 2);
+        int base = strtoul(line.substr(6, 5).c_str(), NULL, 2);
         ss << base;
         string Base = ss.str();
         ss.str(string());
-        int rt = stoi(line.substr(11,5).c_str(), NULL, 2);
+        int rt = strtoul(line.substr(11,5).c_str(), NULL, 2);
         ss << rt;
         string RT = ss.str();
         ss.str(string());
-        int offset = signExt16(line.substr(16, 16));
+        long offset = signExt16(line.substr(16, 16));
         ss << offset;
         string strOff = ss.str();
         ss.str(string());
@@ -153,10 +153,10 @@ string cat1(string line) {
 
 string cat2(string line) {
 	string instruction;
-    int opcode = stoi(line.substr(3,3).c_str(), NULL, 2);
-	int dest = stoi(line.substr(6,5).c_str(), NULL, 2);
-	int src1 = stoi(line.substr(11,5).c_str(), NULL, 2);
-	int src2 = stoi(line.substr(16,5).c_str(), NULL, 2);
+    int opcode = strtoul(line.substr(3,3).c_str(), NULL, 2);
+	int dest = strtoul(line.substr(6,5).c_str(), NULL, 2);
+	int src1 = strtoul(line.substr(11,5).c_str(), NULL, 2);
+	int src2 = strtoul(line.substr(16,5).c_str(), NULL, 2);
     //int cat = 2;
 
     //convert int to string
@@ -170,43 +170,43 @@ string cat2(string line) {
     string Src2 = ss.str();
     ss.str(string());
 
-    if(opcode = 0) {
+    if(opcode == 0) {
     //XOR
     instruction = "XOR R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 1) {
+    else if(opcode == 1) {
     //MUL
     instruction = "MUL R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 2) {
+    else if(opcode == 2) {
     //ADD
     instruction = "ADD R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 3) {
+    else if(opcode == 3) {
     //SUB
     instruction = "SUB R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 4) {
+    else if(opcode == 4) {
     //AND
     instruction = "AND R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 5) {
+    else if(opcode == 5) {
     //OR
     instruction = "OR R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 6) {
+    else if(opcode == 6) {
     //ADDU
     instruction = "ADDU R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
     Node newNode(2, opcode, dest, src1, src2);
@@ -224,10 +224,10 @@ string cat2(string line) {
 
 string cat3(string line) {
 	string instruction;
-    int opcode = stoi(line.substr(3,3).c_str(), NULL, 2);
-	int dest = stoi(line.substr(6,5).c_str(), NULL, 2);
-	int src1 = stoi(line.substr(11,5).c_str(), NULL, 2);
-	int src2 = signExt16(line.substr(16, 16));
+    int opcode = strtoul(line.substr(3,3).c_str(), NULL, 2);
+	int dest = strtoul(line.substr(6,5).c_str(), NULL, 2);
+	int src1 = strtoul(line.substr(11,5).c_str(), NULL, 2);
+	long src2 = signExt16(line.substr(16, 16));
     //int cat = 3;
 
     //convert int to string
@@ -241,43 +241,43 @@ string cat3(string line) {
     string Src2 = ss.str();
     ss.str(string());
 
-    if(opcode = 0 ) {
+    if(opcode == 0 ) {
     //ORI
     instruction = "ORI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 1) {
+    else if(opcode == 1) {
     //XORI
     instruction = "XORI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 2) {
+    else if(opcode == 2) {
     //ADDI
     instruction = "ADDI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 3) {
+    else if(opcode == 3) {
     //SUBI
     instruction = "SUBI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 4) {
+    else if(opcode == 4) {
     //ANDI
     instruction = "ANDI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 5) {
+    else if(opcode == 5) {
     //SRL
     instruction = "SRL R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
     nodes.push_back(newNode);
     }
-    else if(opcode = 6) {
+    else if(opcode == 6) {
     //SRA
     instruction = "SRA R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
     Node newNode(3, opcode, dest, src1, src2);
@@ -295,9 +295,9 @@ string cat3(string line) {
 //convert 2's complement to decimal
 string cat4(string line) {
     int cat = 4;
-    int data = stoi(line.c_str(), NULL, 2);
+    long data = strtoul(line.c_str(), NULL, 2);
     if(line.substr(0,1) == "1") {
-        data = data - pow(2, 32);
+        data = data - pow(2, 32);		
     }
     ss << data;
     string  instruction = ss.str();
@@ -334,7 +334,8 @@ int main() {
 	string instruction;
 
     //read input file and decode it then store decoded instructions into output file1
-	while(getline(inFile, line)) {
+	//while(getline(inFile, line)) {
+	while(inFile >> line) {
 		if(line.substr(0,3) == "001") {
 			instruction = cat1(line);
 			outFile1 << line << "\t" << address << "\t" << instruction << "\n";
