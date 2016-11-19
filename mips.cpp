@@ -13,8 +13,12 @@
 
 using namespace std;
 int registers[32];
+vector<int> memory;
 vector<Node> nodes;
+bool breakLine = false;
+int memStart;
 stringstream ss;
+ofstream outFile2;
 
 //calculate offset
 int signExt16(string str) {
@@ -25,17 +29,24 @@ int signExt16(string str) {
     return offset;
 }
 
+int signExt5(string str) {
+	long offset = strtoul(str.c_str(), NULL, 2);
+    if(str.substr(0, 1) == "1") {
+        offset = offset - pow(2, 5);
+    }
+    return offset;
+}
+
 //decode cat1 instructions
-string cat1(string line) {
+string cat1(string line, int PC) {
 	string instruction;
     int opcode = strtoul(line.substr(3,3).c_str(), NULL, 2);
     //int cat = 1;
-	cout << opcode << endl;
 	if(opcode == 0) {
         //NOP
 		instruction = "NOP";
 		int opcode = 0;
-        Node newNode(1, opcode, 0, 0, 0);
+        Node newNode(1, opcode, 0, 0, 0,PC, instruction);
         nodes.push_back(newNode);
 	}
     else if(opcode == 1) {
@@ -53,7 +64,7 @@ string cat1(string line) {
 		instruction = "J #" + ss.str();
 	    ss.str(string());
 
-        Node newNode(1, opcode, 0, 0, newPC);
+        Node newNode(1, opcode, newPC, 0, 0, PC, instruction);
         nodes.push_back(newNode);
 	}
 	else if(opcode == 2) {
@@ -71,7 +82,7 @@ string cat1(string line) {
         string strOff = ss.str();
         ss.str(string());
         instruction = "BEQ R" + RS + ", " + "R" + RT + ", " + "#" + strOff;
-        Node newNode(1, opcode, rs, rt, offset);
+        Node newNode(1, opcode, rs, rt, offset, PC, instruction);
         nodes.push_back(newNode);
 	}
 	else if(opcode == 3) {
@@ -89,7 +100,7 @@ string cat1(string line) {
         string strOff = ss.str();
         ss.str(string());
         instruction = "BNE R" + RS + ", " + "R" + RT + ", " + "#" + strOff;
-        Node newNode(1, opcode, rs, rt, offset);
+        Node newNode(1, opcode, rs, rt, offset, PC, instruction);
         nodes.push_back(newNode);
 	}
 	else if(opcode == 4) {
@@ -102,7 +113,7 @@ string cat1(string line) {
 		ss << offset;
 		instruction = "BGTZ R" + RS + ", " + "#" + ss.str();
     	ss.str(string());
-        Node newNode(1, opcode, rs, 0, offset);
+        Node newNode(1, opcode, rs, 0, offset, PC, instruction);
         nodes.push_back(newNode);
 	}
 	else if(opcode == 5) {
@@ -120,7 +131,7 @@ string cat1(string line) {
         string strOff = ss.str();
         ss.str(string());
         instruction = "SW R" + RT + ", " + strOff + "(R" + Base + ")";
-        Node newNode(1, opcode, base, rt, offset);
+        Node newNode(1, opcode, base, rt, offset, PC, instruction);
         nodes.push_back(newNode);
 	}
 	else if(opcode == 6) {
@@ -138,20 +149,21 @@ string cat1(string line) {
         string strOff = ss.str();
         ss.str(string());
         instruction = "LW R" + RT + ", " + strOff + "(R" + Base + ")";
-        Node newNode(1, opcode, base, rt, offset);
+        Node newNode(1, opcode, base, rt, offset, PC, instruction);
         nodes.push_back(newNode);
 	}
 	else {
 		//BREAK
 		instruction = "BREAK";
-        Node newNode(1, opcode, 0, 0, 0);
+        Node newNode(1, opcode, 0, 0, 0, PC, instruction);
         nodes.push_back(newNode);
+		breakLine = true;
 	}
 	return instruction;
 }
 
 
-string cat2(string line) {
+string cat2(string line, int PC) {
 	string instruction;
     int opcode = strtoul(line.substr(3,3).c_str(), NULL, 2);
 	int dest = strtoul(line.substr(6,5).c_str(), NULL, 2);
@@ -173,56 +185,56 @@ string cat2(string line) {
     if(opcode == 0) {
     //XOR
     instruction = "XOR R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 1) {
     //MUL
     instruction = "MUL R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 2) {
     //ADD
     instruction = "ADD R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 3) {
     //SUB
     instruction = "SUB R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 4) {
     //AND
     instruction = "AND R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 5) {
     //OR
     instruction = "OR R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 6) {
     //ADDU
     instruction = "ADDU R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else {
     //SUBU
     instruction = "SUBU R" + Dest + ", " + "R" + Src1 + ", " +  + "R" + Src2;
-    Node newNode(2, opcode, dest, src1, src2);
+    Node newNode(2, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     return instruction;
 }
 
 
-string cat3(string line) {
+string cat3(string line, int PC) {
 	string instruction;
     int opcode = strtoul(line.substr(3,3).c_str(), NULL, 2);
 	int dest = strtoul(line.substr(6,5).c_str(), NULL, 2);
@@ -244,49 +256,61 @@ string cat3(string line) {
     if(opcode == 0 ) {
     //ORI
     instruction = "ORI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 1) {
     //XORI
     instruction = "XORI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 2) {
     //ADDI
     instruction = "ADDI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 3) {
     //SUBI
     instruction = "SUBI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 4) {
     //ANDI
     instruction = "ANDI R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 5) {
     //SRL
+	src2 = signExt5(line.substr(27, 5));
+	ss << src2;
+    Src2 = ss.str();
+    ss.str(string());
     instruction = "SRL R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else if(opcode == 6) {
     //SRA
+	src2 = signExt5(line.substr(27, 5));
+	ss << src2;
+    Src2 = ss.str();
+    ss.str(string());
     instruction = "SRA R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     else {
     //SLL
+	src2 = signExt5(line.substr(27, 5));
+	ss << src2;
+    Src2 = ss.str();
+    ss.str(string());
     instruction = "SLL R" + Dest + ", " + "R" + Src1 + ", " +  + "#" + Src2;
-    Node newNode(3, opcode, dest, src1, src2);
+    Node newNode(3, opcode, dest, src1, src2, PC, instruction);
     nodes.push_back(newNode);
     }
     return instruction;
@@ -302,13 +326,45 @@ string cat4(string line) {
     ss << data;
     string  instruction = ss.str();
     ss.str(string());
-    Node newNode(cat, 0, 0, 0, data);
-    nodes.push_back(newNode);
+    //Node newNode(cat, 0, 0, 0, data);
+    //nodes.push_back(newNode);
     return instruction;
 }
 
-int main() {
-/*int main(int argc, char* argv[]) {
+//print out data in registers and memory
+void printTrace(Node* node, int cycle) {
+	outFile2 << "--------------------\n";
+	outFile2 << "Cycle " << cycle + 1 << ":\t" << node->getPC() << "\t" << node->getInstruction() << endl;
+	
+	//print out data in registers
+	outFile2 << "\nRegisters\n";
+	for(int i  = 0; i < 4; i++) {
+		if(i <= 1) {
+			outFile2 << "R0" << 8*i << ":\t";		
+		}		
+		else {
+			outFile2 << "R" << 8*i << ":\t";	
+		}
+		for(int j = 0; j < 7; j++) {
+			outFile2 << registers[8*i + j] << "\t";
+		}
+		outFile2 << registers[8*i + 7] << endl;
+	}
+	
+	//print out data in memory
+	outFile2 << "\nData\n";
+	//cout << memStart << ":\t";
+	for(int i = 0; i < memory.size()/8; i++) {
+		outFile2 << memStart + i * 32 << ":\t";
+		for(int j = 0; j < 8; j++) {
+			outFile2 << memory[8*i + j] << "\t";
+		}
+		outFile2 << endl;
+	}
+}
+
+//int main() {
+int main(int argc, char* argv[]) {
 	ifstream inFile;
 	if(argc == 2) {
 		inFile.open(argv[1]);
@@ -319,14 +375,14 @@ int main() {
 	}
 	else {
 		cout << "\nInvalid input, please enter the executable name and the test file name\n";
-	}*/
+	}
 
-	//open the two output files
+	//open output file for storing disassembly
 	ofstream outFile1;
 	outFile1.open("disassembly.txt");
 
-	ifstream inFile;
-	inFile.open("sample.txt");
+	//ifstream inFile;
+	//inFile.open("sample.txt");
 
 	//read input and decode it
 	string line;
@@ -337,69 +393,105 @@ int main() {
 	//while(getline(inFile, line)) {
 	while(inFile >> line) {
 		if(line.substr(0,3) == "001") {
-			instruction = cat1(line);
+			instruction = cat1(line, address);
 			outFile1 << line << "\t" << address << "\t" << instruction << "\n";
+			if(breakLine) {
+				memStart = address + 4;
+			}
 		}
 		else if(line.substr(0,3) == "010") {
-			instruction = cat2(line);
+			instruction = cat2(line, address);
 			outFile1 << line << "\t" << address << "\t" << instruction << "\n";
 		}
 		else if(line.substr(0,3) == "100"){
-			instruction = cat3(line);
+			instruction = cat3(line, address);
 			outFile1 << line << "\t" << address << "\t" << instruction << "\n";
 		}
 		else {
             //data segment starts after break instruction, so this might be the right logic
             instruction = cat4(line);
-			outFile1 << line << "\t" << address << "\t" << instruction << "\n";
+			outFile1 << line << "\t" << address << "\t" << instruction << "\n";			
+				
+			//store data decoded after the break line into corresponding memeory address
+			memory.push_back(strtoul(instruction.c_str(), NULL, 10));
 		}
 		address += 4;
 	}
 	inFile.close();
 	outFile1.close();
 
-/*////////////////////////////////////
-//manipulate data in memory and registers
     //initialize registers
 	for(int i = 0; i < 32; i++) {
         registers[i] = 0;
 	}
-	//initialize data segment with decoded data after the break line
-    write to memeory{}
 
-
-
-	ofstream outFile2;
+	//ofstream outFile2;
 	outFile2.open("simulation.txt");
 
 	//access each element in the vector which stores the decoded instruction
-    //vector<instruct>:: iterator it = instructions.begin();
-    //while(it != instructions.end() && !(*it).isBreak()) {
-    for(int i = 0; !instructions[i].isBreak(); ) {
+    for(int i = 0; i < nodes.size(); ) {
 
         //check if it is branch or jump instruction
-        if(instructions[i].isJump()) {
+        if(nodes[i].getCat() == 1 && nodes[i].getOpcode() == 1) {
             //jump to destination instruction, not accessing memory or registers
-            printTrace();
-            i = dest + 1;
+            printTrace(&nodes[i], i);			
+			int j = (nodes[i].getDest() * 4 - nodes[i].getPC())/4;
+            i = i + j;
         }
-        else if(instructions[i].isBranch()) {
-            if(branchTake()) {
-                i = dest + 1;
+        else if(nodes[i].getCat() == 1 && nodes[i].getOpcode() == 2) {
+			//branch on equal
+            printTrace(&nodes[i], i);			
+            if(registers[nodes[i].getSrc1()] == registers[nodes[i].getSrc2()]) {
+                i += registers[nodes[i].getDest()];
             }
-            printTrace();
+			i++;
         }
+        else if(nodes[i].getCat() == 1 && nodes[i].getOpcode() == 3) {
+			//branch not equal
+            printTrace(&nodes[i], i);			
+            if(registers[nodes[i].getSrc1()] != registers[nodes[i].getSrc2()]) {
+                i += registers[nodes[i].getDest()];
+            }
+			i++;
+        }
+        else if(nodes[i].getCat() == 1 && nodes[i].getOpcode() == 4) {
+			//branch greater than 0
+            printTrace(&nodes[i], i);			
+            if(registers[nodes[i].getSrc1()] > registers[nodes[i].getSrc2()]) {
+                i += registers[nodes[i].getDest()];
+            }
+			i++;
+        }
+        else if(nodes[i].getCat() == 1 && nodes[i].getOpcode() == 5) {
+			//store word
+			int mem = registers[nodes[i].getDest()] + nodes[i].getSrc2();
+			memory[(mem-memStart)/4] = registers[nodes[i].getSrc1()];
+            printTrace(&nodes[i], i);			
+			i++;
+        }
+        else if(nodes[i].getCat() == 1 && nodes[i].getOpcode() == 6) {
+			//load word
+			int mem = registers[nodes[i].getDest()] + nodes[i].getSrc2();
+			registers[nodes[i].getSrc1()] = memory[(mem-64)/4];
+            printTrace(&nodes[i], i);			
+			i++;
+        }
+		//else if(nodes[i].cat == 2 && nodes[i].opcode == 0) {
+			//XOR
+			
+			
+		//}
+		
         else {
             ////for other instructions just access memory and registers
-            printTrace();
+            printTrace(&nodes[i], i);			
             i++;
         }
     }
 
     //output the break instruction at the end
     ////////
-    trace();
 
-	outFile2.close();*/
+	outFile2.close();
 	return 0;
 }
