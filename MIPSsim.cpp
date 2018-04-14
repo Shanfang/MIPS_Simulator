@@ -1,7 +1,3 @@
-/* On my honor, I have neither given nor received unauthorized aid on this assignment.
-	Name: Shanfang zhao
-	UFID: 4334-1163
-*/
 #include <iostream>
 #include <fstream>
 #include <string>
